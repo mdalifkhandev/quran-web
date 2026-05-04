@@ -103,7 +103,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
         </div>
         <div className="qc-loader-progress mb-4 h-1.5 rounded-full" />
         <div className="space-y-3">
-          {[1, 2, 3].map((k) => (
+          {[1, 2, 3,4,5].map((k) => (
             <div key={k} className="surface p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div className="qc-skeleton h-4 w-16 rounded-full" />
@@ -201,7 +201,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
                 </div>
               </div>
               <div className="space-y-2.5 px-2 pb-2">
-                {[1, 2, 3].map((k) => (
+                {[1, 2, 3,4,5].map((k) => (
                   <div key={k} className="surface p-4">
                     <div className="mb-3 h-4 w-24 rounded-full qc-skeleton" />
                     <div className="mb-4 ml-auto h-8 w-2/3 rounded-lg qc-skeleton" />
@@ -254,6 +254,20 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
                 }
                 onCopyArabic={() => navigator.clipboard.writeText(arabic ?? "")}
                 onCopyTranslation={() => navigator.clipboard.writeText(v.translations?.[0]?.text ?? "")}
+                onShare={async () => {
+                  const base = typeof window !== "undefined" ? window.location.origin : "";
+                  const url = `${base}${currentChapter === 1 ? "/" : `/surah/${currentChapter}`}#verse-${v.verse_key.replace(":", "-")}`;
+                  const shareText = `Quran Companion - Ayah ${v.verse_key}`;
+                  try {
+                    if (typeof navigator !== "undefined" && navigator.share) {
+                      await navigator.share({ title: `Ayah ${v.verse_key}`, text: shareText, url });
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                    }
+                  } catch {
+                    // user cancelled share or unsupported
+                  }
+                }}
               />
             );
           })}

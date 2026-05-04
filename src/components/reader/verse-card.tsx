@@ -4,8 +4,9 @@ import { sanitizeHtml } from "@/lib/utils/sanitize";
 import type { Verse } from "@/lib/types";
 import { VerseActions } from "@/components/reader/verse-actions";
 
-export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, domId, arabicFontSize, lineHeight, translationFontSize, showTranslation, onPlay, onBookmark, onCopyArabic, onCopyTranslation }: { verse: Verse; arabic?: string; active?: boolean; isPlaying?: boolean; activeWordIndex?: number | null; domId?: string; arabicFontSize: number; lineHeight: number; translationFontSize: number; showTranslation: boolean; onPlay: () => void; onBookmark: () => void; onCopyArabic: () => void; onCopyTranslation: () => void }) {
+export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, domId, arabicFontSize, lineHeight, translationFontSize, showTranslation, onPlay, onBookmark, onCopyArabic, onCopyTranslation, onShare }: { verse: Verse; arabic?: string; active?: boolean; isPlaying?: boolean; activeWordIndex?: number | null; domId?: string; arabicFontSize: number; lineHeight: number; translationFontSize: number; showTranslation: boolean; onPlay: () => void; onBookmark: () => void; onCopyArabic: () => void; onCopyTranslation: () => void; onShare: () => void }) {
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
+  const [showTafsir, setShowTafsir] = useState(false);
   const wordParts = useMemo(
     () =>
       (arabic ?? "").split(/(\s+)/).map((part) => ({
@@ -85,7 +86,30 @@ export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, d
       {showTranslation && verse.translations?.map((t) => (
         <div key={`${verse.id}-${t.resource_id}`} translate="no" className="pt-2.5 text-sm text-[var(--fg)]/90" style={{ fontSize: `${translationFontSize}px` }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.text) }} />
       ))}
-      <VerseActions onPlay={onPlay} onBookmark={onBookmark} onCopyArabic={onCopyArabic} onCopyTranslation={onCopyTranslation} />
+      <VerseActions onPlay={onPlay} onBookmark={onBookmark} onCopyArabic={onCopyArabic} onCopyTranslation={onCopyTranslation} onShare={onShare} onTafsir={() => setShowTafsir(true)} />
+
+      {showTafsir && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="surface max-h-[80vh] w-full max-w-2xl overflow-y-auto p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-base font-semibold">Tafsir - {verse.verse_key}</h3>
+              <button className="btn h-8" onClick={() => setShowTafsir(false)} type="button">Close</button>
+            </div>
+            {verse.tafsirs && verse.tafsirs.length > 0 ? (
+              <div className="space-y-3">
+                {verse.tafsirs.map((t) => (
+                  <div key={`${verse.id}-tafsir-${t.resource_id}`} className="rounded-xl border border-(--line) bg-(--bg-soft) p-3">
+                    <p className="mb-2 text-xs text-muted-foreground">Source {t.resource_id}</p>
+                    <div className="text-sm leading-7" dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.text) }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No tafsir available for this ayah with current settings.</p>
+            )}
+          </div>
+        </div>
+      )}
     </article>
   );
 }
