@@ -20,8 +20,26 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const themeInitScript = `
+    (function () {
+      try {
+        var raw = localStorage.getItem("quran-companion-settings");
+        if (!raw) return;
+        var parsed = JSON.parse(raw);
+        var theme = parsed && parsed.state && parsed.state.settings && parsed.state.settings.theme;
+        var root = document.documentElement;
+        root.classList.remove("dark", "sepia");
+        if (theme === "dark") root.classList.add("dark");
+        else if (theme === "sepia") root.classList.add("sepia");
+      } catch (e) {}
+    })();
+  `;
+
   return (
     <html lang="en" suppressHydrationWarning className={notoNaskhArabic.variable}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body>
         <ThemeProvider>
           <AppQueryProvider>
