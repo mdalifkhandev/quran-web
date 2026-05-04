@@ -54,7 +54,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
             translations: settings.translationIds,
             tafsirs: settings.tafsirIds,
             audio: settings.recitationId ?? 7,
-            words: settings.showWords,
+            words: true,
             script: settings.script,
           }),
         ]);
@@ -94,7 +94,30 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
     target.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [currentIndex, queue]);
 
-  if (bootLoading && renderedVerses.length === 0) return <div className="surface p-4">Loading Surah...</div>;
+  if (bootLoading && renderedVerses.length === 0) {
+    return (
+      <div className="surface p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="qc-skeleton h-6 w-36 rounded-lg" />
+          <div className="badge">Loading...</div>
+        </div>
+        <div className="qc-loader-progress mb-4 h-1.5 rounded-full" />
+        <div className="space-y-3">
+          {[1, 2, 3].map((k) => (
+            <div key={k} className="surface p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="qc-skeleton h-4 w-16 rounded-full" />
+                <div className="qc-skeleton h-4 w-14 rounded-full" />
+              </div>
+              <div className="mb-4 ml-auto qc-skeleton h-9 w-2/3 rounded-lg" />
+              <div className="mb-2 qc-skeleton h-4 w-5/6 rounded" />
+              <div className="qc-skeleton h-4 w-2/3 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (error && renderedVerses.length === 0) return <div className="surface p-4 text-red-500">{error}</div>;
 
   const playbackVerses = renderedVerses.map((v) => {
@@ -167,14 +190,23 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
           </div>
 
           {verseLoading && (
-            <div className="pointer-events-none absolute inset-0 z-20 rounded-2xl bg-black/20 backdrop-blur-[1px]">
-              <div className="space-y-2.5 p-2">
+            <div className="qc-loader-overlay pointer-events-none absolute inset-0 z-20 rounded-2xl">
+              <div className="p-2">
+                <div className="surface mb-2.5 px-3 py-2">
+                  <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Refreshing verses...</span>
+                    <span>Please wait</span>
+                  </div>
+                  <div className="qc-loader-progress h-1.5 rounded-full" />
+                </div>
+              </div>
+              <div className="space-y-2.5 px-2 pb-2">
                 {[1, 2, 3].map((k) => (
-                  <div key={k} className="surface animate-pulse p-4">
-                    <div className="mb-3 h-4 w-24 rounded bg-(--line)" />
-                    <div className="mb-4 ml-auto h-8 w-2/3 rounded bg-(--line)" />
-                    <div className="mb-2 h-4 w-4/5 rounded bg-(--line)" />
-                    <div className="h-4 w-3/5 rounded bg-(--line)" />
+                  <div key={k} className="surface p-4">
+                    <div className="mb-3 h-4 w-24 rounded-full qc-skeleton" />
+                    <div className="mb-4 ml-auto h-8 w-2/3 rounded-lg qc-skeleton" />
+                    <div className="mb-2 h-4 w-4/5 rounded qc-skeleton" />
+                    <div className="h-4 w-3/5 rounded qc-skeleton" />
                   </div>
                 ))}
               </div>

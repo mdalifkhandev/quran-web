@@ -5,7 +5,7 @@ import type { Verse } from "@/lib/types";
 import { VerseActions } from "@/components/reader/verse-actions";
 
 export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, domId, arabicFontSize, lineHeight, translationFontSize, showTranslation, onPlay, onBookmark, onCopyArabic, onCopyTranslation }: { verse: Verse; arabic?: string; active?: boolean; isPlaying?: boolean; activeWordIndex?: number | null; domId?: string; arabicFontSize: number; lineHeight: number; translationFontSize: number; showTranslation: boolean; onPlay: () => void; onBookmark: () => void; onCopyArabic: () => void; onCopyTranslation: () => void }) {
-  const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
   const wordParts = useMemo(
     () =>
       (arabic ?? "").split(/(\s+)/).map((part) => ({
@@ -14,6 +14,17 @@ export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, d
       })),
     [arabic]
   );
+  const wordsByPosition = useMemo(() => {
+    const map = new Map<number, Verse["words"][number]>();
+    verse.words?.forEach((w) => {
+      if (typeof w.position === "number") map.set(w.position, w);
+    });
+    return map;
+  }, [verse.words]);
+  const focusedWordIndex = hoveredWordIndex;
+  const focusedWord = typeof focusedWordIndex === "number" ? wordsByPosition.get(focusedWordIndex + 1) : undefined;
+  const focusedTooltip =
+    focusedWord?.translation?.text || focusedWord?.transliteration?.text || "Word meaning unavailable";
 
   return (
     <article
@@ -41,27 +52,36 @@ export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, d
         {wordParts.map(({ part, isSpace }, idx) => {
           if (isSpace) return <span key={`${verse.id}-space-${idx}`}>{part}</span>;
           const wordIndex = wordParts.slice(0, idx + 1).filter((item) => !item.isSpace).length - 1;
-          const isSelected = selectedWordIndex === wordIndex;
           const isAudioSelected = typeof activeWordIndex === "number" && activeWordIndex === wordIndex;
-          const emphasized = isAudioSelected || isSelected;
+          const emphasized = isAudioSelected;
+          const wordData = wordsByPosition.get(wordIndex + 1);
+          const wordTooltip =
+            wordData?.translation?.text ||
+            wordData?.transliteration?.text ||
+            "Word meaning unavailable";
           return (
-            <button
+            <span
               key={`${verse.id}-word-${idx}`}
-              type="button"
-              onClick={() => setSelectedWordIndex(isSelected ? null : wordIndex)}
+              title={wordTooltip}
+              aria-label={wordTooltip}
+              onMouseEnter={() => setHoveredWordIndex(wordIndex)}
+              onMouseLeave={() => setHoveredWordIndex((prev) => (prev === wordIndex ? null : prev))}
               className={
                 emphasized
-                  ? isAudioSelected
-                    ? "rounded-md bg-emerald-500/25 px-1 font-bold text-emerald-200"
-                    : "rounded-md bg-red-500/25 px-1 font-bold text-red-300"
+                  ? "rounded-md bg-emerald-500/25 px-1 font-bold text-emerald-200"
                   : "rounded-md px-1"
               }
             >
               {part}
-            </button>
+            </span>
           );
         })}
       </p>
+      {typeof focusedWordIndex === "number" && (
+        <div className="mt-2 inline-flex max-w-full rounded-lg border border-(--line) bg-(--bg-soft) px-2.5 py-1.5 text-xs text-muted-foreground">
+          <span className="truncate">{focusedTooltip}</span>
+        </div>
+      )}
       {showTranslation && verse.translations?.map((t) => (
         <div key={`${verse.id}-${t.resource_id}`} translate="no" className="pt-2.5 text-sm text-[var(--fg)]/90" style={{ fontSize: `${translationFontSize}px` }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.text) }} />
       ))}

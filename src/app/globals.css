@@ -91,3 +91,44 @@ body {
   color: var(--muted);
   background: var(--bg-soft);
 }
+
+@keyframes qcShimmer {
+  0% { background-position: 180% 0; }
+  100% { background-position: -40% 0; }
+}
+
+@keyframes qcIndeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+.qc-loader-overlay {
+  background: color-mix(in oklab, var(--bg) 72%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.qc-loader-progress {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--line) 82%, transparent);
+}
+
+.qc-loader-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent 0%, var(--brand) 45%, transparent 100%);
+  animation: qcIndeterminate 1.05s ease-in-out infinite;
+}
+
+.qc-skeleton {
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--line) 70%, transparent) 18%,
+    color-mix(in oklab, var(--bg-soft) 55%, transparent) 42%,
+    color-mix(in oklab, var(--line) 70%, transparent) 70%
+  );
+  background-size: 220% 100%;
+  animation: qcShimmer 1.2s linear infinite;
+}
