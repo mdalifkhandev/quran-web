@@ -4,7 +4,7 @@ import { sanitizeHtml } from "@/lib/utils/sanitize";
 import type { Verse } from "@/lib/types";
 import { VerseActions } from "@/components/reader/verse-actions";
 
-export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, domId, arabicFontSize, lineHeight, translationFontSize, showTranslation, onPlay, onBookmark, onCopyArabic, onCopyTranslation, onShare }: { verse: Verse; arabic?: string; active?: boolean; isPlaying?: boolean; activeWordIndex?: number | null; domId?: string; arabicFontSize: number; lineHeight: number; translationFontSize: number; showTranslation: boolean; onPlay: () => void; onBookmark: () => void; onCopyArabic: () => void; onCopyTranslation: () => void; onShare: () => void }) {
+export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, domId, arabicFontSize, lineHeight, translationFontSize, showTranslation, tafsirNameById, onPlay, onBookmark, onCopyArabic, onCopyTranslation, onShare }: { verse: Verse; arabic?: string; active?: boolean; isPlaying?: boolean; activeWordIndex?: number | null; domId?: string; arabicFontSize: number; lineHeight: number; translationFontSize: number; showTranslation: boolean; tafsirNameById?: Record<number, string>; onPlay: () => void; onBookmark: () => void; onCopyArabic: () => void; onCopyTranslation: () => void; onShare: () => void }) {
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
   const [showTafsir, setShowTafsir] = useState(false);
   const wordParts = useMemo(
@@ -16,7 +16,8 @@ export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, d
     [arabic]
   );
   const wordsByPosition = useMemo(() => {
-    const map = new Map<number, Verse["words"][number]>();
+    type VerseWord = NonNullable<Verse["words"]>[number];
+    const map = new Map<number, VerseWord>();
     verse.words?.forEach((w) => {
       if (typeof w.position === "number") map.set(w.position, w);
     });
@@ -89,24 +90,42 @@ export function VerseCard({ verse, arabic, active, isPlaying, activeWordIndex, d
       <VerseActions onPlay={onPlay} onBookmark={onBookmark} onCopyArabic={onCopyArabic} onCopyTranslation={onCopyTranslation} onShare={onShare} onTafsir={() => setShowTafsir(true)} />
 
       {showTafsir && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="surface max-h-[80vh] w-full max-w-2xl overflow-y-auto p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-base font-semibold">Tafsir - {verse.verse_key}</h3>
-              <button className="btn h-8" onClick={() => setShowTafsir(false)} type="button">Close</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div className="surface max-h-[90vh] w-full max-w-6xl overflow-y-auto p-0">
+            <div className="sticky top-0 z-10 border-b border-(--line) bg-[linear-gradient(135deg,color-mix(in_oklab,var(--brand-soft)_35%,var(--card))_0%,var(--card)_60%)] px-5 py-4 backdrop-blur">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold tracking-tight">Tafsir - {verse.verse_key}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">Ayah {verse.verse_number} detailed explanation</p>
+                </div>
+                <button className="btn h-8" onClick={() => setShowTafsir(false)} type="button">Close</button>
+              </div>
             </div>
+            <div className="p-5">
+              <div className="mb-4 flex flex-wrap gap-2">
+                <span className="badge">Verse {verse.verse_key}</span>
+                <span className="badge">{verse.tafsirs?.length ?? 0} tafsir source</span>
+              </div>
             {verse.tafsirs && verse.tafsirs.length > 0 ? (
-              <div className="space-y-3">
-                {verse.tafsirs.map((t) => (
-                  <div key={`${verse.id}-tafsir-${t.resource_id}`} className="rounded-xl border border-(--line) bg-(--bg-soft) p-3">
-                    <p className="mb-2 text-xs text-muted-foreground">Source {t.resource_id}</p>
-                    <div className="text-sm leading-7" dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.text) }} />
-                  </div>
+              <div className="space-y-4">
+                {verse.tafsirs.map((t, idx) => (
+                  <article key={`${verse.id}-tafsir-${t.resource_id}`} className="rounded-2xl border border-(--line) bg-(--bg-soft) p-4 shadow-[0_8px_24px_rgba(0,0,0,0.10)]">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="badge">{tafsirNameById?.[t.resource_id] ?? `Source ${t.resource_id}`}</span>
+                      <span className="badge">#{idx + 1}</span>
+                    </div>
+                    <div className="rounded-xl border border-(--line) bg-[color-mix(in_oklab,var(--card)_90%,black_10%)] p-4">
+                      <div className="text-sm leading-8" dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.text) }} />
+                    </div>
+                  </article>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No tafsir available for this ayah with current settings.</p>
+              <div className="rounded-2xl border border-dashed border-(--line) bg-(--bg-soft) p-6 text-center">
+                <p className="text-sm text-muted-foreground">No tafsir available for this ayah with current settings.</p>
+              </div>
             )}
+            </div>
           </div>
         </div>
       )}

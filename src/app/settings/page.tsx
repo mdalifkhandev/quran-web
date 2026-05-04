@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Language, Translation } from "@/lib/types";
+import type { Language, Tafsir, Translation } from "@/lib/types";
 import { useQuranResources } from "@/hooks/useQuranResources";
 import { useSettingsStore } from "@/store/useSettingsStore";
 
@@ -16,6 +16,10 @@ export default function SettingsPage() {
   const translations: Translation[] = useMemo(
     () => (data.translations?.translations as Translation[]) ?? [],
     [data.translations],
+  );
+  const tafsirs: Tafsir[] = useMemo(
+    () => (data.tafsirs?.tafsirs as Tafsir[]) ?? [],
+    [data.tafsirs],
   );
   const orderedTranslations = useMemo(() => {
     const current = settings.language.toLowerCase();
@@ -38,6 +42,16 @@ export default function SettingsPage() {
       return hay.includes(current);
     });
   }, [onlySelectedLanguage, orderedTranslations, settings.language]);
+
+  const visibleTafsirs = useMemo(() => {
+    const current = settings.language.toLowerCase();
+    return tafsirs.filter((t) => {
+      const hay = `${t.language_name} ${t.name}`.toLowerCase();
+      if (current === "bn") return hay.includes("bangla") || hay.includes("bengali");
+      if (current === "en") return hay.includes("english");
+      return hay.includes(current);
+    });
+  }, [tafsirs, settings.language]);
 
   useEffect(() => {
     if (translations.length === 0) return;
@@ -150,6 +164,34 @@ export default function SettingsPage() {
                       translationIds: e.target.checked
                         ? [...settings.translationIds, t.id]
                         : settings.translationIds.filter((id) => id !== t.id),
+                    })
+                  }
+                />
+                {t.name} <span className="text-xs opacity-70">({t.language_name})</span>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="surface p-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="font-medium">Tafsirs ({settings.tafsirIds.length} selected)</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(visibleTafsirs.length > 0 ? visibleTafsirs : tafsirs).map((t) => {
+            const checked = settings.tafsirIds.includes(t.id);
+            return (
+              <label key={t.id} className={checked ? "btn btn-brand" : "btn"}>
+                <input
+                  type="checkbox"
+                  className="mr-1"
+                  checked={checked}
+                  onChange={(e) =>
+                    updateSettings({
+                      tafsirIds: e.target.checked
+                        ? [...settings.tafsirIds, t.id]
+                        : settings.tafsirIds.filter((id) => id !== t.id),
                     })
                   }
                 />

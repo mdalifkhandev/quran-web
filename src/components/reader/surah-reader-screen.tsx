@@ -13,10 +13,13 @@ import { JuzSidebar } from "@/components/reader/juz-sidebar";
 import { PageSidebar } from "@/components/reader/page-sidebar";
 import { SettingsPanel } from "@/components/reader/settings-panel";
 import { VerseCard } from "@/components/reader/verse-card";
+import { api } from "@/lib/api-client";
 import { mockDataSource, qfDataSource } from "@/lib/data-source";
 
 let chaptersCache: Chapter[] | null = null;
 let juzsCache: Juz[] | null = null;
+const autoTafsirCache: Record<string, number[]> = {};
+const tafsirNameCache: Record<string, Record<number, string>> = {};
 
 function normalizeAudioUrl(url?: string) {
   if (!url) return undefined;
@@ -30,6 +33,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
   const [chapters, setChapters] = useState<Chapter[]>(chaptersCache ?? []);
   const [juzs, setJuzs] = useState<Juz[]>(juzsCache ?? []);
   const [renderedVerses, setRenderedVerses] = useState<Verse[]>([]);
+  const [tafsirNameById, setTafsirNameById] = useState<Record<number, string>>({});
   const [bootLoading, setBootLoading] = useState(renderedVerses.length === 0);
   const [verseLoading, setVerseLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +48,41 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
     const run = async () => {
       try {
         setVerseLoading(true);
+        let effectiveTafsirIds = settings.tafsirIds;
+        let localTafsirNames = tafsirNameCache[settings.language] ?? {};
+        if (effectiveTafsirIds.length === 0) {
+          const cached = autoTafsirCache[settings.language];
+          if (cached && cached.length > 0) {
+            effectiveTafsirIds = cached;
+          } else {
+            try {
+              const { data } = await api.get<{ tafsirs?: Array<{ id: number; name: string }> }>("/quran/tafsirs", {
+                params: { language: settings.language },
+              });
+              localTafsirNames = Object.fromEntries((data.tafsirs ?? []).map((t) => [t.id, t.name]));
+              tafsirNameCache[settings.language] = localTafsirNames;
+              const fallbackIds = (data.tafsirs ?? []).slice(0, 1).map((t) => t.id);
+              if (fallbackIds.length > 0) {
+                autoTafsirCache[settings.language] = fallbackIds;
+                effectiveTafsirIds = fallbackIds;
+              }
+            } catch {
+              // keep empty if resource fetch fails
+            }
+          }
+        } else if (!tafsirNameCache[settings.language]) {
+          try {
+            const { data } = await api.get<{ tafsirs?: Array<{ id: number; name: string }> }>("/quran/tafsirs", {
+              params: { language: settings.language },
+            });
+            localTafsirNames = Object.fromEntries((data.tafsirs ?? []).map((t) => [t.id, t.name]));
+            tafsirNameCache[settings.language] = localTafsirNames;
+          } catch {
+            // keep empty map
+          }
+        }
+        setTafsirNameById(localTafsirNames);
+
         const [c, j, v] = await Promise.all([
           chaptersCache ? Promise.resolve(chaptersCache) : qfDataSource.getChapters(),
           juzsCache ? Promise.resolve(juzsCache) : qfDataSource.getJuzs(),
@@ -52,7 +91,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
             perPage: 50,
             language: settings.language,
             translations: settings.translationIds,
-            tafsirs: settings.tafsirIds,
+            tafsirs: effectiveTafsirIds,
             audio: settings.recitationId ?? 7,
             words: true,
             script: settings.script,
@@ -236,6 +275,7 @@ export function SurahReaderScreen({ chapterNumber }: { chapterNumber: number }) 
                 translationFontSize={settings.translationFontSize}
                 lineHeight={settings.lineHeight}
                 showTranslation={settings.showTranslation}
+                tafsirNameById={tafsirNameById}
                 onPlay={() => {
                   setQueue(playbackVerses, idx);
                   setPlaying(true);
