@@ -4,10 +4,18 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Settings } from "@/lib/types";
 
+function parseCsvIds(value?: string) {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((x) => Number(x.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
 const defaults: Settings = {
   language: process.env.NEXT_PUBLIC_DEFAULT_LANGUAGE ?? "bn",
-  translationIds: [],
-  tafsirIds: [],
+  translationIds: parseCsvIds(process.env.NEXT_PUBLIC_DEFAULT_TRANSLATION_IDS),
+  tafsirIds: parseCsvIds(process.env.NEXT_PUBLIC_DEFAULT_TAFSIR_IDS),
   recitationId: Number(process.env.NEXT_PUBLIC_DEFAULT_RECITATION_ID) || 7,
   script: "uthmani",
   arabicFontSize: 38,
